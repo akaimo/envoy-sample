@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"net"
+	"os"
 
 	api "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	"github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
@@ -53,8 +54,8 @@ var upstreams = map[string][]struct {
 	Address string
 	Port    uint32
 }{
-	"service_nginx": {{"nginx1", 80}, {"nginx2", 80}},
-	"service_httpd": {{"httpd1", 80}, {"httpd2", 80}},
+	"nginx_cluster": {{"nginx1", 80}, {"nginx2", 80}},
+	"httpd_cluster": {{"httpd1", 80}, {"httpd2", 80}},
 }
 
 func defaultSnapshot() cache.Snapshot {
@@ -62,6 +63,12 @@ func defaultSnapshot() cache.Snapshot {
 	for cluster, ups := range upstreams {
 		eps := make([]*endpoint.LocalityLbEndpoints, len(ups))
 		for i, up := range ups {
+			addr, err := net.ResolveIPAddr("ip", up.Address)
+			if err != nil {
+				fmt.Println("Resolve error ", err.Error())
+				os.Exit(1)
+			}
+			
 			eps[i] = &endpoint.LocalityLbEndpoints{
 				LbEndpoints: []*endpoint.LbEndpoint{{
 					HostIdentifier: &endpoint.LbEndpoint_Endpoint{
@@ -69,7 +76,7 @@ func defaultSnapshot() cache.Snapshot {
 							Address: &core.Address{
 								Address: &core.Address_SocketAddress{
 									SocketAddress: &core.SocketAddress{
-										Address:       up.Address,
+										Address:       addr.IP.String(),
 										PortSpecifier: &core.SocketAddress_PortValue{PortValue: up.Port},
 									},
 								},
