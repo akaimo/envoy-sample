@@ -10,6 +10,7 @@ import (
 	"github.com/envoyproxy/go-control-plane/pkg/cache"
 	xds "github.com/envoyproxy/go-control-plane/pkg/server"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/reflection"
 )
 
 func main() {
@@ -23,19 +24,19 @@ func run() error {
 	snapshotCache := cache.NewSnapshotCache(false, hash{}, nil)
 	server := xds.NewServer(snapshotCache, nil)
 
-		err := snapshotCache.SetSnapshot("cluster.local/node0", defaultSnapshot())
-		if err != nil {
-			return err
-		}
-
-	grpcServer := grpc.NewServer()
-	api.RegisterEndpointDiscoveryServiceServer(grpcServer, server)
-
-	lsn, err := net.Listen("tcp", "0.0.0.0:80")
+	err := snapshotCache.SetSnapshot("cluster.local/node0", defaultSnapshot())
 	if err != nil {
 		return err
 	}
-	fmt.Println("hoge")
+
+	lsn, err := net.Listen("tcp", "0.0.0.0:20000")
+	if err != nil {
+		return err
+	}
+
+	grpcServer := grpc.NewServer()
+	reflection.Register(grpcServer)
+	api.RegisterEndpointDiscoveryServiceServer(grpcServer, server)
 	return grpcServer.Serve(lsn)
 }
 
