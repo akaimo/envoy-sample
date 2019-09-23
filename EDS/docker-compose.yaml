@@ -2,6 +2,10 @@ version: '3'
 services:
   xds:
     build: server
+    ports:
+      - "20000:20000"
+    environment:
+      - GODEBUG=http2debug=2
   envoy:
     build: .
     ports:
