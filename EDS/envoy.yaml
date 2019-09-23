@@ -22,14 +22,30 @@ static_resources:
                   name: route
                   virtual_hosts:
                     - name: nginx_service
-                      domains: ["*"]
+                      domains: ["nginx.local"]
                       routes:
                         - match: { prefix: "/" }
                           route: { cluster: nginx_cluster }
+                    - name: nginx_service
+                      domains: ["httpd.local"]
+                      routes:
+                        - match: { prefix: "/" }
+                          route: { cluster: httpd_cluster }
                 http_filters:
                   - name: envoy.router
   clusters:
     - name: nginx_cluster
+      connect_timeout: 0.25s
+      lb_policy: ROUND_ROBIN
+      type: EDS
+      eds_cluster_config:
+        eds_config:
+          api_config_source:
+            api_type: GRPC
+            grpc_services:
+              envoy_grpc:
+                cluster_name: xds_cluster
+    - name: httpd_cluster
       connect_timeout: 0.25s
       lb_policy: ROUND_ROBIN
       type: EDS
